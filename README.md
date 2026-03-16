@@ -1,126 +1,122 @@
-# Generative Art Studio Notebook
+# MNIST Conditional GAN Notebook
 
-This project notebook is a lightweight Conditional GAN (cGAN) studio built with PyTorch and trained on MNIST. It follows the spirit of the 4-day "Generative Art Studio" challenge by combining fast training, visual progress tracking, and class-controlled image generation in a notebook-friendly workflow.
+The notebook walks through a complete cGAN workflow:
 
-## Project Summary
+1. Imports the required PyTorch, torchvision, and matplotlib libraries.
+2. Detects whether a GPU is available and selects `cuda` or `cpu`.
+3. Loads the MNIST training set with resizing, tensor conversion, and normalization.
+4. Defines a conditional generator based on transposed convolution layers.
+5. Defines a conditional discriminator based on convolution layers.
+6. Trains both models adversarially for several epochs.
+7. Stores generated image snapshots at the end of each epoch.
+8. Displays a training-evolution grid.
+9. Generates a label-controlled sample grid for a chosen digit.
 
-The notebook currently trains a convolutional conditional GAN on handwritten digits. The generator takes both random noise and a class label, while the discriminator evaluates whether an image-label pair is real or fake. This allows the model to learn both image structure and class-specific control.
+## Dataset And Preprocessing
 
-Current notebook behavior:
+The notebook uses the MNIST handwritten digits dataset.
 
-- Uses MNIST as the dataset.
-- Resizes images to `32x32` for fast GPU-friendly training.
-- Trains a convolutional generator and discriminator.
-- Conditions both models on digit labels.
-- Stores generator snapshots after each epoch.
-- Produces a control example for digit `8` generation.
+Preprocessing steps:
 
-## Challenge Alignment
+- images are resized to `32x32`,
+- converted to tensors,
+- and normalized to the range expected by a `Tanh` output layer.
 
-### Day 1: Choose Your Muse
+The data loader uses shuffled mini-batches, which is appropriate for GAN training.
 
-This notebook uses MNIST, which is a strong choice for a fast experiment because:
-
-- it downloads automatically,
-- trains quickly on free GPU resources,
-- makes GAN progress easy to see,
-- and works well for conditional generation.
-
-Recommended environment:
-
-- Google Colab or Kaggle Notebook
-- GPU enabled in runtime settings
-- PyTorch with torchvision and matplotlib installed
-
-## Notebook Pipeline
-
-The notebook is organized around the following stages:
-
-1. Import PyTorch, torchvision, and plotting utilities.
-2. Detect whether CUDA is available.
-3. Load and normalize the MNIST training set.
-4. Define the conditional convolutional generator.
-5. Define the conditional convolutional discriminator.
-6. Train the GAN for several epochs.
-7. Save visual snapshots of generated samples over time.
-8. Generate class-specific outputs, including multiple samples of digit `8`.
-
-## Architecture Notes
+## Model Architecture
 
 ### Generator
 
-The generator:
+The generator takes two inputs:
 
-- starts from a random latent vector,
-- embeds the class label,
-- concatenates noise and label information,
-- then upsamples into an image using transposed convolutions.
+- a random latent vector of size `100`,
+- and a class label.
+
+The label is embedded, concatenated with the latent vector, reshaped into a feature map, and passed through several `ConvTranspose2d` blocks with batch normalization and `ReLU` activations. The final layer uses `Tanh` to produce a single-channel image.
+
+This allows the generator to create digits conditioned on a requested class.
 
 ### Discriminator
 
-The discriminator:
+The discriminator also uses label conditioning.
 
-- receives an image and its label,
-- expands the label embedding across the image size,
-- concatenates the image and label channels,
-- then predicts whether the pair is real or generated.
+It embeds the class label, expands it spatially to match the image dimensions, concatenates it with the input image, and passes the result through convolutional layers with `LeakyReLU`, batch normalization, and a final `Sigmoid` output.
 
-This is a standard conditional DCGAN-style setup and is a good fit for the challenge requirement of "mastering control."
+Its job is to decide whether an image-label pair is real or generated.
 
-## Outputs Already Covered
+## Training Procedure
 
-### 1. Evolution Map
+The notebook trains the model for `8` epochs.
 
-The notebook already stores generator outputs during training and displays them as a grid across epochs. This gives a simple visual record of how random noise gradually becomes digit-like structure.
+For each batch:
 
-### 2. Control Grid
+- the discriminator is trained on real images with true labels,
+- the discriminator is trained on fake images generated from random noise and random labels,
+- then the generator is updated to fool the discriminator.
 
-The notebook already demonstrates label conditioning by generating multiple samples of a chosen class. In the current version, it creates several versions of digit `8` from different random seeds.
+The loss function used is binary cross-entropy loss (`BCELoss`), and both models are optimized with Adam using GAN-friendly beta values.
 
-## Good Next Extensions
+At the end of every epoch, the notebook generates samples from a fixed noise tensor and fixed labels, then stores them in a `snapshots` list. This makes it possible to compare model progress consistently across training.
 
-To fully match the challenge brief, the following additions are recommended:
+## Visual Outputs
 
-### 1. Morphing Reel
+The notebook produces two main visual results.
 
-Interpolate between two latent vectors and generate intermediate images. This will show whether the learned latent space changes smoothly between samples.
+### 1. Training Evolution Grid
 
-### 2. Finer Snapshot Tracking
+After training, the notebook plots one generated image grid per epoch. This shows how the generator evolves from noisy outputs toward more recognizable digit shapes.
 
-Instead of saving only one snapshot per epoch, store outputs every fixed number of training steps such as every `1000` iterations.
+### 2. Label-Controlled Generation
 
-### 3. Performance Audit
+The notebook then generates a new batch of samples using a chosen label, specifically digit `8`, and displays them in a grid. This demonstrates that the model has learned conditional generation rather than only unconditional sampling.
 
-Add:
+## Notebook Structure
 
-- `torch.cuda.max_memory_allocated()` to compare memory use,
-- an activation comparison such as `LeakyReLU` vs `GELU`,
-- and a short visual check for checkerboard artifacts from transposed convolutions.
+The notebook is organized as a straightforward sequence of code cells:
 
-### 4. Failure Insight
+- library imports,
+- device setup,
+- data transforms and dataset loading,
+- generator definition,
+- discriminator definition,
+- hyperparameter and optimizer setup,
+- fixed latent vectors for snapshot tracking,
+- training loop,
+- evolution-grid visualization,
+- class-controlled generation,
+- final image display.
 
-Include a short written note describing one bad generation example and what it suggests about the model. For MNIST, this could be:
+## Requirements
 
-- incomplete loops in `8`,
-- merged strokes between digits,
-- or ambiguous samples that resemble two classes at once.
+To run the notebook, you need:
 
-## Suggested Deliverables
+- Python
+- PyTorch
+- torchvision
+- matplotlib
 
-For a complete submission, include:
+A GPU is recommended but not strictly required.
 
-- an evolution grid across training,
-- a control grid showing diverse versions of one requested class,
-- a latent interpolation grid,
-- and a short reflection on one generation failure.
+## Current Strengths
 
-## Practical Tips
+This notebook already has several good design choices:
 
-- Save model checkpoints every few epochs using `.pth` files.
-- If you are using Colab, save checkpoints to Google Drive.
-- Keep image sizes small for fast experiments.
-- Use fixed noise vectors when comparing training progress across epochs.
+- conditional generation is implemented correctly in both models,
+- convolutional layers are used instead of a fully connected GAN,
+- fixed noise is used for consistent snapshot comparison,
+- and the workflow is compact enough for Colab or Kaggle.
 
-## Conclusion
+## Possible Improvements
 
-This notebook is already a solid starting point for the Generative Art Studio challenge. It covers the core cGAN workflow, shows training evolution, and supports prompt-like control through class labels. With latent interpolation, memory tracking, and a short failure analysis added, it can become a complete mini generative art portfolio.
+If you want to extend this notebook further, the most natural next additions are:
+
+- save snapshots every fixed number of iterations rather than only per epoch,
+- interpolate between two latent vectors to explore the latent space,
+- save model weights as `.pth` checkpoints,
+- measure GPU memory with `torch.cuda.max_memory_allocated()`,
+- and compare different activation functions such as `LeakyReLU` and `GELU`.
+
+## Summary
+
+This notebook is a compact MNIST cGAN implementation that covers dataset loading, conditional GAN architecture, adversarial training, training-progress visualization, and class-controlled image generation. It is a solid foundation for experimenting with generative art ideas in a lightweight notebook setting.
